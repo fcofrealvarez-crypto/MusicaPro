@@ -1,0 +1,26 @@
+# Entornos virtuales Python
+.env
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Caché Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Descargas temporales (la carpeta downloads)
+backend/downloads/*
+backend/uploads/*
+!backend/downloads/.gitkeep
+
+# Node y Frontend
+node_modules/
+dist/
+.npm/
+
+# Git y sistema operativo
+.DS_Store
+Thumbs.db

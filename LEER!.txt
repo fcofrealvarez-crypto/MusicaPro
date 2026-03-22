@@ -1,0 +1,5 @@
+yt-dlp
+flet
+pyinstaller
+
+instalar Python OBLIGATORIO!

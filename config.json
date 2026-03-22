@@ -1,0 +1,7 @@
+{
+    "download_path": "downloads",
+    "default_format": "mp3",
+    "bass_reduction": false,
+    "theme_mode": "dark",
+    "check_updates": true
+}
