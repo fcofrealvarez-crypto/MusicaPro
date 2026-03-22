@@ -143,7 +143,7 @@ def get_enhancement_filters(is_low_quality=False, preset="Smart (Auto)", output_
             "0.002,0.05 6 -18,-9,-1"  # Highs
         )
     
-    filters.append(mcompand_str)
+    # filters.append(mcompand_str) # Mcompand filter is not supported natively by standard ffmpeg in cloud, disabling to prevent crash
     filters.extend(base_eq) # Apply static EQ after dynamics
 
     # --- STAGE 2: RESTORATION (Low Quality Handling) ---
