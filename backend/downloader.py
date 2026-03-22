@@ -20,6 +20,7 @@ def download_music(url, status_hook=None, audio_format='mp3', preset="Smart (Aut
         'quiet': True,
         'noplaylist': False, # We handle playlists by iterating
         'extract_flat': 'in_playlist', # fast extraction for playlists
+        'extractor_args': {'youtube': {'player_client': ['android']}}, # Bypasses Render/Datacenter API blocks
     }
 
     # Set FFmpeg location for extraction too (if needed for some probes, though mostly ytdlp handles it)
@@ -48,6 +49,7 @@ def download_music(url, status_hook=None, audio_format='mp3', preset="Smart (Aut
             'writethumbnail': True,
             'outtmpl': 'downloads/%(artist)s - %(title)s.%(ext)s',
             'noplaylist': True, # We handle iteration manually now
+            'extractor_args': {'youtube': {'player_client': ['android']}}, # Bypasses Render/Datacenter API blocks
         }
         if ffmpeg_bin:
             base_ydl_opts['ffmpeg_location'] = ffmpeg_bin

@@ -276,6 +276,7 @@ def search_youtube(query, limit=10):
             'extract_flat': True, # Fast extraction
             'noplaylist': True,
             'limit': limit,
+            'extractor_args': {'youtube': {'player_client': ['android']}}, # Bypasses Render API blocks
         }
         
         results = []

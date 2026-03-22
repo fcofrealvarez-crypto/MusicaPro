@@ -12,6 +12,8 @@ __pycache__/
 *$py.class
 
 # Descargas temporales (la carpeta downloads)
+downloads/
+temp/
 backend/downloads/*
 backend/uploads/*
 !backend/downloads/.gitkeep
