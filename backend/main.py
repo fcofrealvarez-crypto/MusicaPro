@@ -1,7 +1,8 @@
 import os
 import shutil
 import asyncio
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
+import asyncio
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -29,6 +30,41 @@ os.makedirs("enhanced", exist_ok=True)
 
 history_manager = HistoryManager()
 
+# --- WEBSOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except:
+                pass
+
+ws_manager = ConnectionManager()
+
+def get_threadsafe_status_hook(task_name="download"):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+        
+    def hook(message: str, percent: float = 0):
+        asyncio.run_coroutine_threadsafe(
+            ws_manager.broadcast({"task": task_name, "message": message, "percent": percent}),
+            loop
+        )
+    return hook
+
+
 # Data Models
 class SearchRequest(BaseModel):
     query: str
@@ -43,6 +79,16 @@ class DownloadRequest(BaseModel):
 def root():
     return {"status": "ok", "message": "MusicPro API is running"}
 
+@app.websocket("/api/ws/progress")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            # We don't expect messages from the client, just keep connection open
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+
 @app.post("/api/search")
 async def search(req: SearchRequest):
     results = await asyncio.to_thread(search_youtube, req.query, limit=req.limit)
@@ -51,10 +97,12 @@ async def search(req: SearchRequest):
 @app.post("/api/download")
 async def download(req: DownloadRequest):
     try:
-        # Run the yt-dlp download in a separate thread to prevent blocking
-        # Note: We aren't using status hooks via websocket yet, but standard wait is fine for now
+        # Create a thread-safe hook to pipe yt-dlp progress to WebSockets
+        status_hook = get_threadsafe_status_hook("download")
+        
+        # Run the yt-dlp download in a separate thread
         downloaded_items = await asyncio.to_thread(
-            download_music, req.url, None, req.format, req.preset
+            download_music, req.url, status_hook, req.format, req.preset
         )
         if downloaded_items:
             for item in downloaded_items:
@@ -118,6 +166,9 @@ async def handle_remaster(
     upload_path = os.path.join("uploads", file.filename)
     out_path = os.path.join("enhanced", f"remastered_{file.filename}")
     
+    status_hook = get_threadsafe_status_hook("remaster")
+    if status_hook: status_hook("Analizando archivo...", 10)
+    
     with open(upload_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
@@ -125,7 +176,9 @@ async def handle_remaster(
     bitrate = await asyncio.to_thread(get_audio_bitrate, upload_path)
     is_low = (bitrate and bitrate < 128)
     
+    if status_hook: status_hook("Aplicando Remasterización Hi-Res...", 50)
     ok = await asyncio.to_thread(enhance_audio, upload_path, out_path, is_low, preset)
+    if status_hook: status_hook("Finalizando archivo...", 90)
     
     background_tasks.add_task(os.remove, upload_path)
     

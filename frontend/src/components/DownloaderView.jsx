@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useProgressWebSocket } from '../hooks/useProgressWebSocket';
 
 export default function DownloaderView() {
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState('mp3');
   const [preset, setPreset] = useState('Smart (Auto)');
-  const [status, setStatus] = useState('Listo para iniciar');
-  const [progress, setProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { progress, message: status, setProgress, setMessage: setStatus } = useProgressWebSocket();
+
 
   useEffect(() => {
     const handleDownloadEvent = (e) => {
@@ -34,9 +35,7 @@ export default function DownloaderView() {
         },
         body: JSON.stringify({ url, format, preset })
       });
-      
-      setStatus('Descargando y Procesando Audio...');
-      setProgress(50);
+
       
       const data = await resp.json();
       
@@ -118,11 +117,11 @@ export default function DownloaderView() {
 
       {/* Área de estado */}
       <div style={{ width: '100%', textAlign: 'center' }}>
-        <div className="progress-container" style={{ opacity: progress > 0 ? 1 : 0, transition: 'opacity 0.3s ease', marginBottom: '8px' }}>
-          <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+        <div className="progress-container" style={{ opacity: isProcessing || progress > 0 ? 1 : 0, transition: 'opacity 0.3s ease', marginBottom: '8px', height: '8px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden' }}>
+          <div className="progress-bar" style={{ width: `${Math.max(5, progress)}%`, height: '100%', background: 'var(--primary-glow)', transition: 'width 0.3s ease' }}></div>
         </div>
         <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', minHeight: '1.2rem' }}>
-          {status}
+          {status || (isProcessing ? 'Procesando...' : 'Listo para iniciar')}
         </div>
       </div>
       

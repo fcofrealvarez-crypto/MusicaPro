@@ -1,21 +1,26 @@
 import React, { useState, useRef } from 'react';
+import { useProgressWebSocket } from '../hooks/useProgressWebSocket';
 
-function FileProcessorCard({ title, description, apiEndpoint, extraFields, onResult }) {
+function FileProcessorCard({ title, description, apiEndpoint, extraFields, onResult, wsProps }) {
   const [file, setFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [status, setStatus] = useState('');
+  const [localStatus, setLocalStatus] = useState('');
   const fileInputRef = useRef(null);
   const [formDataState, setFormDataState] = useState({});
+
+  const status = isProcessing && wsProps ? (wsProps.message || 'Procesando...') : localStatus;
+  const progress = isProcessing && wsProps ? Math.max(5, wsProps.progress) : 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
-      setStatus('Por favor selecciona un archivo primero.');
+      setLocalStatus('Por favor selecciona un archivo primero.');
       return;
     }
     
     setIsProcessing(true);
-    setStatus('Subiendo y Procesando...');
+    if(wsProps) wsProps.setProgress(5);
+    setLocalStatus('Subiendo archivo al servidor...');
     
     const formData = new FormData();
     formData.append('file', file);
@@ -46,16 +51,20 @@ function FileProcessorCard({ title, description, apiEndpoint, extraFields, onRes
         }
         
         onResult(downloadUrl, filename);
-        setStatus('¡Éxito! Tu archivo está listo para descargar.');
+        setLocalStatus('¡Éxito! Tu archivo está listo para descargar.');
+        if(wsProps) wsProps.setProgress(100);
       } else {
         const err = await resp.json();
-        setStatus(`Error: ${err.message || 'El procesamiento falló'}`);
+        setLocalStatus(`Error: ${err.message || 'El procesamiento falló'}`);
+        if(wsProps) wsProps.setProgress(0);
       }
     } catch (err) {
       console.error(err);
-      setStatus('Falló la conexión con el servidor.');
+      setLocalStatus('Falló la conexión con el servidor.');
+      if(wsProps) wsProps.setProgress(0);
     } finally {
       setIsProcessing(false);
+      if(wsProps) setTimeout(() => wsProps.setProgress(0), 4000);
     }
   };
 
@@ -87,11 +96,18 @@ function FileProcessorCard({ title, description, apiEndpoint, extraFields, onRes
           {isProcessing ? <><div className="spinner"/> Procesando...</> : "Iniciar Procesamiento"}
         </button>
         
-        {status && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: isProcessing ? 'var(--text-muted)' : 'var(--text-main)', textAlign: 'center' }}>
-            {status}
+        {/* Progress Bar for Tools */}
+        <div style={{ width: '100%', textAlign: 'center' }}>
+          <div className="progress-container" style={{ opacity: isProcessing || progress > 0 ? 1 : 0, transition: 'opacity 0.3s ease', marginBottom: '8px', height: '6px', background: 'var(--glass-bg)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div className="progress-bar" style={{ width: `${progress}%`, height: '100%', background: 'var(--accent-teal)', transition: 'width 0.3s ease' }}></div>
           </div>
-        )}
+          
+          {status && (
+            <div style={{ marginTop: '0.2rem', fontSize: '0.9rem', color: isProcessing ? 'var(--text-muted)' : 'var(--text-main)', textAlign: 'center' }}>
+              {status}
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
@@ -99,6 +115,7 @@ function FileProcessorCard({ title, description, apiEndpoint, extraFields, onRes
 
 export default function ToolsView() {
   const [downloadLink, setDownloadLink] = useState(null);
+  const wsProps = useProgressWebSocket();
   
   const handleResult = (url, filename) => {
     setDownloadLink({url, filename});
@@ -130,6 +147,7 @@ export default function ToolsView() {
           description="Convierte tus audios entre distintos formatos (MP3, FLAC, M4A)"
           apiEndpoint="/api/convert"
           onResult={handleResult}
+          wsProps={wsProps}
           extraFields={(state, setState) => (
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Formato de Destino</label>
@@ -147,6 +165,7 @@ export default function ToolsView() {
           description="Aplica arreglos dinámicos y ecualización con IA para mejorar audios de baja calidad."
           apiEndpoint="/api/remaster"
           onResult={handleResult}
+          wsProps={wsProps}
           extraFields={(state, setState) => (
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Perfil de Mejora</label>
@@ -168,6 +187,7 @@ export default function ToolsView() {
         description="Agrega o modifica la información (Título, Artista, Álbum) del archivo de audio."
         apiEndpoint="/api/metadata"
         onResult={handleResult}
+        wsProps={wsProps}
         extraFields={(state, setState) => (
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <input type="text" placeholder="Título" value={state.title || ''} onChange={(e) => setState({...state, title: e.target.value})} style={{ flex: '1 1 30%' }} />
