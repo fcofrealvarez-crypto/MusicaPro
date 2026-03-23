@@ -31,10 +31,12 @@ export default function DownloaderView() {
       const resp = await fetch(`${API_BASE}/api/download`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
         },
         body: JSON.stringify({ url, format, preset })
       });
+
 
       
       const data = await resp.json();

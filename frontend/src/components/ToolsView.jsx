@@ -34,6 +34,9 @@ function FileProcessorCard({ title, description, apiEndpoint, extraFields, onRes
       const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
       const resp = await fetch(`${API_BASE}${apiEndpoint}`, {
         method: 'POST',
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: formData
       });
       
