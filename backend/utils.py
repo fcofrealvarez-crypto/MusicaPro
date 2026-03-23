@@ -279,6 +279,9 @@ def search_youtube(query, limit=10):
             'extractor_args': {'youtube': {'player_client': ['android']}}, # Bypasses Render API blocks
         }
         
+        if os.path.exists("youtube_cookies.txt"):
+            ydl_opts['cookiefile'] = "youtube_cookies.txt"
+        
         results = []
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)

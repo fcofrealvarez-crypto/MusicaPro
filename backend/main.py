@@ -8,6 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
+if "YOUTUBE_COOKIES_BASE64" in os.environ:
+    import base64
+    try:
+        with open("youtube_cookies.txt", "wb") as f:
+            f.write(base64.b64decode(os.environ["YOUTUBE_COOKIES_BASE64"]))
+        print("Successfully loaded YouTube cookies from environment.")
+    except Exception as e:
+        print(f"Error loading cookies: {e}")
+
 # Import the existing tools
 from downloader import download_music
 from utils import search_youtube, convert_audio, write_metadata

@@ -26,3 +26,7 @@ dist/
 # Git y sistema operativo
 .DS_Store
 Thumbs.db
+
+# Credenciales sensibles completas
+cookies*.txt
+base64_cookies.txt

@@ -22,6 +22,9 @@ def download_music(url, status_hook=None, audio_format='mp3', preset="Smart (Aut
         'extract_flat': 'in_playlist', # fast extraction for playlists
         'extractor_args': {'youtube': {'player_client': ['android']}}, # Bypasses Render/Datacenter API blocks
     }
+    
+    if os.path.exists("youtube_cookies.txt"):
+        extract_opts['cookiefile'] = "youtube_cookies.txt"
 
     # Set FFmpeg location for extraction too (if needed for some probes, though mostly ytdlp handles it)
     ffmpeg_bin = get_ffmpeg_path()
